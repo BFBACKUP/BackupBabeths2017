@@ -1,0 +1,169 @@
+%%Panel.HTMLHead%%
+    <script type="text/javascript" src="%%GLOBAL_CdnAppPath%%/javascript/jquery/plugins/jCarousel/jCarousel.js?%%GLOBAL_JSCacheToken%%"></script>
+    <body class="finish-order-page">
+        %%Panel.DrawerMenu%%
+        <div class="page">
+            %%Panel.Header%%
+            <div class="main">
+                <div class="inner">
+                    %%Panel.WrapperBanner%%
+                    <div class="Content Widest" id="LayoutColumn2">
+                        <div class="Block">
+                            <h1 class="TitleHeading">%%LNG_ThanksForYourOrder%%%%GLOBAL_CustomerName%%</h1>
+                            <div class="BlockContent full-width">
+                                <p class="ErrorMessage" style="display:%%GLOBAL_HideError%%">
+                                    %%GLOBAL_ErrorMessage%%
+                                </p>
+
+                                <div style="display:%%GLOBAL_HidePaidOrderConfirmation%%">
+                                    <div class="NotifyMessage">
+                                        <p><span>%%LNG_YourOrderNumber%%</span> <a href="%%GLOBAL_ShopPath%%/account.php?action=view_order&order_id=%%GLOBAL_OrderId%%">%%GLOBAL_OrderId%%</a></p>
+
+                                        <p style="display:%%GLOBAL_HidePhysicalOrderConfirmation%%">
+                                            %%GLOBAL_PhysicalOrderConfirmation%%
+                                        </p>
+
+                                        <p style="display:%%GLOBAL_HideDigitalOrderConfirmation%%">
+                                            %%GLOBAL_DigitalOrderConfirmation%%
+                                        </p>
+                                        <p style="display:%%GLOBAL_HideDigitalOrderDownloadLink%%">
+                                            <br>
+                                            <a href="%%GLOBAL_ViewFullOrderPath%%">%%LNG_DownloadTheItemsYouOrdered%%</a>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div style="display: %%GLOBAL_HideAwaitingPayment%%">
+                                    <p class="SuccessMessage" style="display:%%GLOBAL_HideSuccess%%">
+                                        %%LNG_JustSentAnEmailConfirmation%%
+                                    </p>
+                                    %%LNG_OrderAwaitingPayment%%
+                                </div>
+
+                                %%GLOBAL_OrderConfirmationDetails%%
+                                %%SNIPPET_OfflinePaymentMessage%%
+                            </div>
+                        </div>
+                        <div class="full-width">
+                            %%Panel.ShareProductById%%
+                            %%Panel.SimilarMultiProductsByCustomerViews%%
+                            <div class="txtR mbm" id="continueshopping">
+                                <a href="%%GLOBAL_ShopPath%%" class="btn alt">%%GLOBAL_ContinueShoppingOnStoreName%%</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clear"></div>
+                    <script>
+                        $(document).ready(function(){
+                            var purchasedIds = [];
+                            if (sharingData) {
+                                $.each(sharingData, function(i, v){
+                                    purchasedIds.push(i);
+                                });
+                            }
+                            var orderTotal = '%%GLOBAL_OrderTotal%%';
+                            var myOrderTotal = orderTotal.replace("$","").replace(" USD", "");
+                            fbq('track', 'Purchase', {
+                                content_ids: purchasedIds,
+                                content_type: 'product',
+                                value: myOrderTotal,
+                                currency: 'USD'
+                            });
+                            var orderId = '%%GLOBAL_OrderId%%';
+                            set_cookie('smTransId', orderId);
+                        });
+                        var customerEmail = "%%GLOBAL_CurrentCustomerEmail%%";
+                        var productListInfo = [];
+                        var productList = [];
+                        var myActionField = {}; 
+                        var myProducts = []; 
+                        var myDataLayer = []; 
+                        var dataLayer = [] || dataLayer;
+                        var newOrderId = '';
+                        var oldOrderId = '';
+                        var firstTimeOrder = true;
+                        
+                        function trackEcommerce() {
+                            this._addTrans = addTrans; this._addItem = addItems; this._trackTrans = trackTrans;
+                        }
+                        
+                        function addTrans(orderID,store,total,tax,shipping,city,state,country) {
+                            firstTimeOrder = !get_cookie('smTransId') ? true : false;
+                            if (!firstTimeOrder) {
+                                oldOrderId = get_cookie('smTransId');
+                            }
+                            set_cookie('smTransId', orderID);
+                            newOrderId = orderID;
+                            myActionField = {'id': orderID,'revenue': total,'tax': tax,'shipping': shipping};
+                        }
+                        
+                        function addItems(orderID,sku,product,variation,price,qty) {
+                            var productId = "";
+                            $.each(sharingData, function(i, v){
+                                if (v.fb.name == product) {
+                                    productId = i;
+                                }
+                            });
+                            myProducts.push([productId, product, price, qty]);
+                            productList.push([sku, "", product, qty, price]);
+                        }
+                        
+                        function trackTrans() {
+                            $.each(myProducts, function(i, v){
+                                myDataLayer.push({'id': v[0], 'name': v[1], 'price': v[2], 'quantity': v[3]});
+                                productListInfo.push({'id': v[0], 'price': v[2], 'quantity': v[3]});
+                            });
+                            // Send transaction if the old order id does not match the new order id
+                            if(firstTimeOrder) {
+                                dataLayer.push({
+                                    'event': 'TransactionPage',
+                                    'page_type': 'TransactionPage',
+                                    'site_type': 'd',
+                                    'email': customerEmail,
+                                    'criteo_id': '44148',
+                                    'products_info': productListInfo,
+                                    'transaction_id': '%%GLOBAL_OrderId%%',
+                                    'ecommerce': {
+                                        'purchase': {
+                                            'actionField': myActionField,
+                                            'products': myDataLayer
+                                         }
+                                    }
+                                });
+                            } else {
+                                // Could be a second order
+                                if(oldOrderId != newOrderId) {
+                                    dataLayer.push({
+                                        'event': 'TransactionPage',
+                                        'page_type': 'TransactionPage',
+                                        'site_type': 'd',
+                                        'email': customerEmail,
+                                        'criteo_id': '44148',
+                                        'products_info': productListInfo,
+                                        'transaction_id': '%%GLOBAL_OrderId%%',
+                                        'ecommerce': {
+                                            'purchase': {
+                                                'actionField': myActionField,
+                                                'products': myDataLayer
+                                             }
+                                         }
+                                    });
+                                } else {
+                                    // Order Ids match, so customer refreshed the page, do not send stats
+                                    console.log('Duplicate order do not send transaction.');
+                                }
+                            }
+                        }
+                        
+                        var pageTracker = new trackEcommerce();  
+                    </script>
+                </div>
+            </div>
+            %%Panel.Footer%%
+            <!-- Include the conversion tracking code for all analytics packages -->
+            %%GLOBAL_ConversionCode%%
+        </div>
+        <script type='text/javascript'>!function(d,s) {   var rc = d.location.protocol + "//go.referralcandy.com/purchase/m8wa4eu0mcstlqca4qtalhb2a.js";   var js = d.createElement(s);   js.src = rc;   var fjs = d.getElementsByTagName(s)[0];   fjs.parentNode.insertBefore(js,fjs); }(document,"script");
+        </script> 
+</body>
+</html>

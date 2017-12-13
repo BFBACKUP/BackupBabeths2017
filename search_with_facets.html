@@ -1,0 +1,105 @@
+%%Panel.HTMLHead%%
+    <body>
+        %%Panel.DrawerMenu%%
+        <div class="page">
+            %%Panel.Header%%
+            <div class="main">
+                <div class="inner">
+                    %%Panel.WrapperBanner%%
+                    <div class="Content Widest" id="LayoutColumn1">
+                        %%Banner.TopBanner%%
+                        <h1 class="TitleHeading">Search Results</h1>
+                        <div class="full-width">
+
+                            <div class="Block Moveable Panel pvm" id="SearchPageHeader">
+                                <script type="text/javascript" src="%%GLOBAL_CdnAppPath%%/javascript/jquery/plugins/jstree/jquery.jstree.js"></script>
+                                <p class="txt24">%%GLOBAL_SearchTitle%%</p>
+
+                                <a name="results"></a>
+
+                                <p class="InfoMessage" style="display:%%GLOBAL_HideRelatedSearches%%">
+                                    %%LNG_RelatedSearches%%: %%SNIPPET_RelatedSearches%%
+                                </p>
+
+                                <p class="SearchSuggest" style="display: %%GLOBAL_ShowSearchSuggestion%%">
+                                    <strong>%%LNG_DidYouMean%%:</strong> <a class="nofollow" rel="nofollow" data-params="&amp;correction=%%GLOBAL_SearchId%%" href="%%GLOBAL_ShopPath%%/search.php?search_query=%%GLOBAL_SuggestQueryEscaped%%">%%GLOBAL_SuggestQuery%%</a>
+                                </p>
+
+                                %%Panel.SearchJavaScript%%
+                            </div>
+
+                            %%Panel.SearchPageWithFacets%%
+                        </div>
+                        %%Banner.BottomBanner%%
+                        <script>
+                            var customerEmail = "%%GLOBAL_CurrentCustomerEmail%%";
+                            var dataLayer = dataLayer || [];
+                            var searchImpressions = [];
+                            var productIDList = [];
+                            var itemNumber = 0;
+                            if ($("ul.ProductList li").length > 0) {
+                                $("ul.ProductList li").each(function(){
+                                    var $product = $(this);
+                                    var productId = $(".ProductImage img", $product).attr('src').match(/products\/\d+/g)[0].replace("products/","");
+                                    var productName = $(".ProductDetails a", $product).text().trim();
+                                    var productPrice = $("em", $product).text().trim().replace("$","");
+                                    itemNumber++;
+                                    var myProduct = {
+                                       'name': productName,
+                                       'id': productId,
+                                       'price': productPrice,
+                                       'list': 'Search',
+                                       'position': itemNumber
+                                    };
+                                    searchImpressions.push(myProduct);
+                                    if (itemNumber < 4) {
+                                        productIDList.push(productId);
+                                    }
+                                });
+                                dataLayer.push({
+                                    'page_type': 'ListingPage',
+                                    'site_type': 'd',
+                                    'email': customerEmail,
+                                    'criteo_id': '44148',
+                                    'products': productIDList,
+                                    'ecommerce': {
+                                        'currencyCode': 'USD',
+                                        'impressions': searchImpressions
+                                    }
+                                });
+                            }
+                            $("ul.ProductList li .ProductActionAdd .btn:contains('Add To Cart')").on("click", function(){
+                                var productId = $(this).attr("href").split("=add&product_id=")[1];
+                                var selectedQuantity = "1";
+                                var $product = $(this).parents("li");
+                                var productName = $(".ProductDetails a", $product).text().trim();
+                                var productPrice = $("em", $product).text().trim().replace("$","");
+                                fbq('track', 'AddToCart', {
+                                    content_ids: productId,
+                                    content_type: 'product',
+                                    value: productPrice,
+                                    currency: 'USD'
+                                });
+                                dataLayer.push({
+                                    'event': 'addToCart',
+                                    'ecommerce': {
+                                        'currencyCode': 'USD',
+                                        'add': {
+                                            'products': [{
+                                                'name': productName,
+                                                'price': productPrice,
+                                                'quantity': selectedQuantity
+                                            }]
+                                        }
+                                    }
+                                });
+                            });
+                        </script>
+                    </div>
+                    <div class="clear"></div>
+                </div>
+            </div>
+            %%Panel.Footer%%
+        </div>
+    </body>
+</html>
